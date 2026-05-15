@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PVE to ESXi VMDK Command Generator</title>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --danger: #f97316;
+      --border: #374151;
+      --code: #020617;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, var(--bg) 45%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 2rem 1.25rem 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      letter-spacing: -0.04em;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 780px;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1.25rem 3rem;
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+
+    .card h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+    }
+
+    label {
+      display: block;
+      margin: 0.85rem 0 0.35rem;
+      font-weight: 650;
+      font-size: 0.92rem;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 0.7rem 0.8rem;
+      border-radius: 0.7rem;
+      border: 1px solid var(--border);
+      background: #030712;
+      color: var(--text);
+      font: inherit;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 520px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    button {
+      border: 0;
+      border-radius: 0.7rem;
+      padding: 0.7rem 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: #03101a;
+      background: var(--accent);
+    }
+
+    button.secondary {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button.good {
+      background: var(--accent-2);
+    }
+
+    button.warn {
+      background: var(--danger);
+      color: white;
+    }
+
+    .output-section {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .code-block {
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+
+    .code-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      background: #111827;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-title strong {
+      font-size: 0.95rem;
+    }
+
+    .code-title button {
+      padding: 0.45rem 0.65rem;
+      font-size: 0.8rem;
+    }
+
+    pre {
+      margin: 0;
+      padding: 1rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.9rem;
+      color: #d1fae5;
+    }
+
+    .warning {
+      border-left: 4px solid var(--danger);
+      background: rgba(249, 115, 22, 0.08);
+      padding: 0.8rem 0.9rem;
+      border-radius: 0.7rem;
+      color: #fed7aa;
+      margin-top: 1rem;
+    }
+
+    .pill {
+      display: inline-block;
+      font-size: 0.78rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(56,189,248,0.12);
+      color: #bae6fd;
+      border: 1px solid rgba(56,189,248,0.25);
+      margin-bottom: 0.75rem;
+    }
+
+    footer {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.25rem 2rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <span class="pill">Proxmox VE → VMware ESXi 7</span>
+
+  <h1>PVE Disk Export Command Generator</h1>
+
+  <p>
+    Generate the commands to export Proxmox VM disks to VMware VMDK,
+    transfer them to an ESXi datastore, and finalise with
+    <code>vmkfstools</code>.
+  </p>
+
+  <br>
+
+  <p>Tested on Proxmox VE 9.X and VMware ESXi 7.X</p>
+</header>
+
+<main>
+
+  <section class="card">
+
+    <h2>Input</h2>
+
+    <label for="storageType">PVE storage type</label>
+    <select id="storageType">
+      <option value="lvmthin">LVM / LVM-thin block device</option>
+      <option value="qcow2">Directory storage / qcow2 file</option>
+    </select>
+
+    <div class="row">
+
+      <div>
+        <label for="vmid">VMID</label>
+        <input id="vmid" value="210" />
+      </div>
+
+      <div>
+        <label for="diskNum">Disk number</label>
+        <input id="diskNum" value="1" />
+      </div>
+
+    </div>
+
+    <label for="vmName">VM name</label>
+    <input id="vmName" value="example-vm" />
+
+    <label for="sourcePath">Source path</label>
+    <input id="sourcePath" value="/dev/pve/vm-210-disk-1" />
+
+    <div class="hint">
+      LVM: /dev/pve/vm-XXX-disk-X<br>
+      qcow2: /var/lib/vz/images/XXX/vm-XXX-disk-X.qcow2
+    </div>
+
+    <label for="stagingPath">PVE staging path</label>
+    <input id="stagingPath" value="/vmexport" />
+
+    <label for="esxiHost">ESXi host</label>
+    <input id="esxiHost" value="esxi01.lab.local" />
+
+    <label for="datastorePath">ESXi datastore path</label>
+    <input id="datastorePath"
+           value="/vmfs/volumes/datastore_lon_esx_01/pve_export" />
+
+    <label for="transferTool">Transfer method</label>
+    <select id="transferTool">
+      <option value="scp">scp</option>
+      <option value="rsync">rsync -av</option>
+    </select>
+
+    <div class="toggle-row">
+
+      <button onclick="generateCommands()">
+        Generate
+      </button>
+
+      <button class="secondary" onclick="resetDefaults()">
+        Reset
+      </button>
+
+      <button class="warn" onclick="clearSavedConfig()">
+        Clear Saved
+      </button>
+
+    </div>
+
+    <div class="warning">
+      Recommended: power off the VM before export.
+    </div>
+
+  </section>
+
+  <section class="output-section">
+
+    <!-- <div class="card">
+      <h2>Generated output</h2>
+      <p class="hint">
+        Automatically saves config locally in browser storage.
+      </p>
+    </div> -->
+
+    <div class="code-block">
+      <div class="code-title">
+        <strong>Full runbook</strong>
+        <button class="good" onclick="copyBlock('fullOutput')">
+          Copy All
+        </button>
+      </div>
+
+      <pre><code id="fullOutput"></code></pre>
+    </div>
+
+  </section>
+
+</main>
+
+<footer>
+  Built for migration, DR, and recovery workflows.
+</footer>
+
+<script>
+
+  const fields = [
+    'storageType',
+    'vmid',
+    'diskNum',
+    'vmName',
+    'sourcePath',
+    'stagingPath',
+    'esxiHost',
+    'datastorePath',
+    'transferTool'
+  ];
+
+  const STORAGE_KEY = 'pve-esxi-export-config';
+
+  function safeName(value) {
+    return String(value || 'VM')
+      .trim()
+      .replace(/[^A-Za-z0-9._-]+/g, '_');
+  }
+
+  function normalisePath(value) {
+    return String(value || '')
+      .trim()
+      .replace(/\/+$/, '');
+  }
+
+  function saveConfig() {
+
+    const config = {};
+
+    fields.forEach(id => {
+      config[id] = document.getElementById(id).value;
+    });
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(config)
+    );
+  }
+
+  function loadConfig() {
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+
+    if (!saved) {
+      generateCommands();
+      return;
+    }
+
+    try {
+
+      const config = JSON.parse(saved);
+
+      fields.forEach(id => {
+
+        if (config[id] !== undefined) {
+          document.getElementById(id).value = config[id];
+        }
+
+      });
+
+    } catch (e) {
+
+      console.error('Failed to load config', e);
+
+    }
+
+    generateCommands();
+  }
+
+  function clearSavedConfig() {
+
+    localStorage.removeItem(STORAGE_KEY);
+
+    resetDefaults();
+
+  }
+
+  function buildNames() {
+
+    const vmid =
+      document.getElementById('vmid').value.trim() || 'XXX';
+
+    const diskNum =
+      document.getElementById('diskNum').value.trim() || 'X';
+
+    const vmName =
+      safeName(document.getElementById('vmName').value);
+
+    const stagingPath =
+      normalisePath(
+        document.getElementById('stagingPath').value
+      ) || '/vmexport';
+
+    const base =
+      `vm-${vmid}-disk-${diskNum}_${vmName}`;
+
+    return {
+
+      vmid,
+      diskNum,
+      vmName,
+      stagingPath,
+      base,
+
+      rawFile:
+        `${stagingPath}/${base}.raw`,
+
+      vmdkFile:
+        `${stagingPath}/${base}.vmdk`,
+
+      vmdkName:
+        `${base}.vmdk`,
+
+      thinName:
+        `${base}-thin.vmdk`
+
+    };
+  }
+
+  function generateCommands() {
+
+    const storageType =
+      document.getElementById('storageType').value;
+
+    const sourcePath =
+      document.getElementById('sourcePath').value.trim();
+
+    const esxiHost =
+      document.getElementById('esxiHost').value.trim();
+
+    const datastorePath =
+      normalisePath(
+        document.getElementById('datastorePath').value
+      );
+
+    const transferTool =
+      document.getElementById('transferTool').value;
+
+    const n = buildNames();
+
+    let convert;
+
+    if (storageType === 'lvmthin') {
+
+      convert = `# Dump LVM disk to raw
+dd if=${sourcePath} \\
+  of=${n.rawFile} \\
+  bs=4M status=progress oflag=direct
+
+# Convert raw to VMDK
+qemu-img convert -f raw -O vmdk \\
+  -o subformat=streamOptimized,compat6 \\
+  ${n.rawFile} \\
+  ${n.vmdkFile}
+
+qemu-img info ${n.vmdkFile}`;
+
+    } else {
+
+      convert = `# Convert qcow2 directly
+qemu-img convert -f qcow2 -O vmdk \\
+  -o subformat=streamOptimized,compat6 \\
+  ${sourcePath} \\
+  ${n.vmdkFile}
+
+qemu-img info ${n.vmdkFile}`;
+
+    }
+
+    const transfer =
+      transferTool === 'rsync'
+      ? `rsync -av ${n.vmdkFile} \\
+  root@${esxiHost}:${datastorePath}/`
+      : `scp ${n.vmdkFile} \\
+  root@${esxiHost}:${datastorePath}/`;
+
+    const esxi = `# SSH to ESXi
+ssh root@${esxiHost}
+
+cd ${datastorePath}
+
+vmkfstools -i ${n.vmdkName} \\
+  -d thin ${n.thinName}
+
+ls -lh ${n.base}*`;
+
+    const full = `# ============================================
+# VM EXPORT RUNBOOK
+# ============================================
+
+qm config ${n.vmid}
+
+ls -lh ${sourcePath}
+
+${convert}
+
+# ============================================
+
+${transfer}
+
+# ============================================
+
+${esxi}`;
+
+    document.getElementById('fullOutput')
+      .textContent = full;
+
+    saveConfig();
+
+  }
+
+  function copyBlock(id) {
+
+    const text =
+      document.getElementById(id).textContent;
+
+    navigator.clipboard.writeText(text)
+      .then(() => {
+
+        const button = event.target;
+
+        const oldText = button.textContent;
+
+        button.textContent = 'Copied';
+
+        setTimeout(() => {
+
+          button.textContent = oldText;
+
+        }, 1000);
+
+      });
+
+  }
+
+  function resetDefaults() {
+
+    document.getElementById('storageType').value =
+      'lvmthin';
+
+    document.getElementById('vmid').value =
+      '210';
+
+    document.getElementById('diskNum').value =
+      '1';
+
+    document.getElementById('vmName').value =
+      'example-vm';
+
+    document.getElementById('sourcePath').value =
+      '/dev/pve/vm-210-disk-1';
+
+    document.getElementById('stagingPath').value =
+      '/vmexport';
+
+    document.getElementById('esxiHost').value =
+      'esxi01.lab.local';
+
+    document.getElementById('datastorePath').value =
+      '/vmfs/volumes/datastore_lon_esx_01/pve_export';
+
+    document.getElementById('transferTool').value =
+      'rsync';
+
+    generateCommands();
+
+  }
+
+  function syncSourcePath() {
+
+    const storageType =
+      document.getElementById('storageType').value;
+
+    const vmid =
+      document.getElementById('vmid').value.trim();
+
+    const diskNum =
+      document.getElementById('diskNum').value.trim();
+
+    if (storageType === 'lvmthin') {
+
+      document.getElementById('sourcePath').value =
+        `/dev/pve/vm-${vmid}-disk-${diskNum}`;
+
+    } else {
+
+      document.getElementById('sourcePath').value =
+        `/var/lib/vz/images/${vmid}/vm-${vmid}-disk-${diskNum}.qcow2`;
+
+    }
+
+    generateCommands();
+
+  }
+
+  fields.forEach(id => {
+
+    document.getElementById(id)
+      .addEventListener('input', generateCommands);
+
+    document.getElementById(id)
+      .addEventListener('change', generateCommands);
+
+  });
+
+  document.getElementById('storageType')
+    .addEventListener('change', syncSourcePath);
+
+  document.getElementById('vmid')
+    .addEventListener('change', syncSourcePath);
+
+  document.getElementById('diskNum')
+    .addEventListener('change', syncSourcePath);
+
+  loadConfig();
+
+</script>
+
+</body>
+</html>
