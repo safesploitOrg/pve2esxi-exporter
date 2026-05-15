@@ -223,6 +223,18 @@
       padding: 0 1.25rem 2rem;
       color: var(--muted);
       font-size: 0.85rem;
+      text-align: center;
+    }
+
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    footer img {
+      height: 1.2rem;
+      vertical-align: middle;
+      filter: grayscale(100%) brightness(150%);
     }
   </style>
 </head>
@@ -345,7 +357,8 @@
 </main>
 
 <footer>
-  Built for migration, DR, and recovery workflows.
+  Built for migration, DR, and recovery workflows - 
+  <a href="https://safesploitorg.github.io/pve2esxi-exporter/" target="_blank"><img src="assets/images/github-240.png"></a>
 </footer>
 
 <script>
@@ -505,8 +518,7 @@ qemu-img convert -f raw -O vmdk \\
   -o subformat=streamOptimized,compat6 \\
   ${n.rawFile} \\
   ${n.vmdkFile}
-
-qemu-img info ${n.vmdkFile}`;
+`;
 
     } else {
 
@@ -542,7 +554,6 @@ ls -lh ${n.base}*`;
 # ============================================
 
 qm config ${n.vmid}
-
 ls -lh ${sourcePath}
 
 ${convert}
